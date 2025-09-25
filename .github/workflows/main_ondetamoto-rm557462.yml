@@ -35,4 +35,4 @@ jobs:
         app-name: 'ondetamoto-rm557462'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_e727d1e802ce46888ae2a4abd1840b79 }}
-        package: '${{ github.workspace }}/build/libs/*.jar'
+        package: '${{ github.workspace }}/build/libs/app/*.jar'
