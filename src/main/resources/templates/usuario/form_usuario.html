@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Formulário de Usuário</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333;">
+
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main style="max-width: 900px; margin: 40px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+  <h1 style="font-size: 1.8em; color: #007bff; margin-bottom: 20px; text-align: center;"><span th:text="${usuario.id == null} ? 'Cadastrar' : 'Editar'"></span> Usuário</h1>
+
+  <form th:action="@{/usuarios/salvar}" th:object="${usuario}" method="post">
+    <input type="hidden" th:field="*{id}" />
+
+    <div style="margin-bottom: 15px;">
+      <label for="email" style="display: block; margin-bottom: 5px; font-weight: bold;">Email:</label>
+      <input type="email" id="email" th:field="*{email}" required style="width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <label for="senha" style="display: block; margin-bottom: 5px; font-weight: bold;">Senha:</label>
+      <input type="password" id="senha" th:field="*{senha}" required style="width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <label for="role" style="display: block; margin-bottom: 5px; font-weight: bold;">Perfil:</label>
+      <select id="role" th:field="*{role}" required
+              style="width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+        <option value="">-- Selecione um perfil --</option>
+        <option value="ADMIN" th:selected="${usuario.role == 'ADMIN'}">ADMIN</option>
+        <option value="USER" th:selected="${usuario.role == 'USER'}">USER</option>
+      </select>
+    </div>
+
+    <br/>
+
+    <button type="submit" style="padding: 10px 15px; background-color: #007bff; color: #fff; border: none; border-radius: 5px; cursor: pointer;">Salvar</button>
+    <a th:href="@{/usuarios/listar}" style="display: inline-block; padding: 10px 15px; background-color: #6c757d; color: #fff; border-radius: 5px; text-decoration: none;">Cancelar</a>
+  </form>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

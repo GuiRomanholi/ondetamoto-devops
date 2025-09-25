@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Setores</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333;">
+
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main style="max-width: 900px; margin: 40px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+    <h1 style="font-size: 1.8em; color: #007bff; margin-bottom: 20px; text-align: center;">Lista de Setores</h1>
+
+    <p th:if="${mensagem}" th:text="${mensagem}" style="color: green; text-align: center;"></p>
+    <p th:if="${erro}" th:text="${erro}" style="color: red; text-align: center;"></p>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Nome</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Tipo</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Tamanho</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Estabelecimento</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Ações</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="setor : ${setores.content}" style="border: 1px solid #ddd;">
+            <td th:text="${setor.id}" style="border: 1px solid #ddd; padding: 8px;"></td>
+            <td th:text="${setor.nome}" style="border: 1px solid #ddd; padding: 8px;"></td>
+            <td th:text="${setor.tipo}" style="border: 1px solid #ddd; padding: 8px;"></td>
+            <td th:text="${setor.tamanho}" style="border: 1px solid #ddd; padding: 8px;"></td>
+            <td th:text="${setor.estabelecimento.endereco}" style="border: 1px solid #ddd; padding: 8px;"></td>
+            <td style="border: 1px solid #ddd; padding: 8px;">
+                <a th:href="@{'/setores/editar/' + ${setor.id}}"
+                   style="color: #007bff; text-decoration: none; margin-right: 10px;">Editar</a>
+
+                <!-- 🔹 Exclusão com DELETE escondido -->
+                <form th:action="@{/setores/excluir/{id}(id=${setor.id})}" method="post" style="display:inline;">
+                    <input type="hidden" name="_method" value="delete"/>
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <button type="submit"
+                            style="color: #dc3545; background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline;"
+                            onclick="return confirm('Tem certeza que deseja excluir este setor?');">
+                        Excluir
+                    </button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p style="text-align: center; margin-top: 20px;">
+        <a th:href="@{/setores/novo}"
+           style="display: inline-block; padding: 10px 15px; background-color: #007bff; color: #fff; border-radius: 5px; text-decoration: none;">
+            Adicionar Novo Setor
+        </a>
+    </p>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

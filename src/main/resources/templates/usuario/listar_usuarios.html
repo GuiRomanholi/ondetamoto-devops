@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Usuários</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333;">
+
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main style="max-width: 900px; margin: 40px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+  <h1 style="font-size: 1.8em; color: #007bff; margin-bottom: 20px; text-align: center;">Lista de Usuários</h1>
+
+  <p th:if="${mensagem}" th:text="${mensagem}" style="color: green; text-align: center;"></p>
+
+  <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+    <thead>
+    <tr style="background-color: #f2f2f2;">
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Email</th>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Role</th>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Ações</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="usuario : ${usuarios.content}" style="border: 1px solid #ddd;">
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: left;" th:text="${usuario.id}"></td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: left;" th:text="${usuario.email}"></td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: left;"
+          th:text="${usuario.role != null ? usuario.role : 'Sem perfil'}"></td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">
+        <a th:href="@{'/usuarios/editar/' + ${usuario.id}}" style="color: #007bff; text-decoration: none; margin-right: 10px;">Editar</a>
+        <a th:href="@{'/usuarios/excluir/' + ${usuario.id}}" style="color: #dc3545; text-decoration: none;"
+           onclick="return confirm('Tem certeza que deseja excluir este usuário?');">Excluir</a>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+  <p style="text-align: center; margin-top: 20px;"><a th:href="@{/usuarios/novo}" style="display: inline-block; padding: 10px 15px; background-color: #007bff; color: #fff; border-radius: 5px; text-decoration: none;">Adicionar Novo Usuário</a></p>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

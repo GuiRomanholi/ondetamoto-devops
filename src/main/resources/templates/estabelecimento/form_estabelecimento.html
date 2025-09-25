@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Formulário de Estabelecimento</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333;">
+
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main style="max-width: 900px; margin: 40px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+  <h1 style="font-size: 1.8em; color: #007bff; margin-bottom: 20px; text-align: center;"><span th:text="${estabelecimento.id == null} ? 'Cadastrar' : 'Editar'"></span> Estabelecimento</h1>
+
+  <form th:action="@{/estabelecimentos/salvar}" th:object="${estabelecimento}" method="post">
+    <input type="hidden" th:field="*{id}" />
+
+    <div style="margin-bottom: 15px;">
+      <label for="endereco" style="display: block; margin-bottom: 5px; font-weight: bold;">Endereço:</label>
+      <input type="text" id="endereco" th:field="*{endereco}" required style="width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+
+    <br/>
+
+    <button type="submit" style="padding: 10px 15px; background-color: #007bff; color: #fff; border: none; border-radius: 5px; cursor: pointer;">Salvar</button>
+    <a th:href="@{/estabelecimentos/listar}" style="display: inline-block; padding: 10px 15px; background-color: #6c757d; color: #fff; border-radius: 5px; text-decoration: none;">Cancelar</a>
+  </form>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>
