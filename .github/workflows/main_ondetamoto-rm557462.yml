@@ -21,13 +21,24 @@ jobs:
       with:
         java-version: '17'
     
-    - name: Build with Maven
-      run: mvn clean install
+    - name: Grant execute permission to gradlew
+      run: chmod +x ./gradlew
+      
+    - name: Build with Gradle
+      env:
+        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+        SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+        SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+      run: ./gradlew build --stacktrace
+      
+    - name: Find the latest JAR file
+      id: find-jar
+      run: echo "JAR=$(find $GITHUB_WORKSPACE/build/libs -name '*.jar' -print -quit)" >> $GITHUB_ENV
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with: 
         app-name: 'ondetamoto-rm557462'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_cd99e9519cd349dea9d3d2987436b897 }}
-        package: '${{ github.workspace }}/target/*.jar'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_e727d1e802ce46888ae2a4abd1840b79 }}
+        package: ${{ env.JAR }}
