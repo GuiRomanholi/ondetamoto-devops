@@ -36,7 +36,7 @@ dependencies {
 	//implementation 'org.flywaydb:flyway-database-mysql'
 	//implementation 'org.flywaydb:flyway-database-oracle'
 
-	runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc:12.8.1.jre17'
+	runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc:12.8.1'
 
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
