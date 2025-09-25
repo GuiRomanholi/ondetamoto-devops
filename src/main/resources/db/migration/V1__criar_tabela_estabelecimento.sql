@@ -1,4 +1,4 @@
 CREATE TABLE estabelecimento (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT PRIMARY KEY IDENTITY(1,1),
     endereco VARCHAR(255)
 );
