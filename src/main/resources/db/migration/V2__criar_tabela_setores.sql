@@ -1,5 +1,5 @@
 CREATE TABLE setores (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT PRIMARY KEY IDENTITY(1,1),
     nome VARCHAR(255),
     tipo VARCHAR(50),
     tamanho VARCHAR(50),
