@@ -41,4 +41,4 @@ jobs:
         app-name: 'ondetamoto-rm557462'
         slot-name: 'production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_85AFC82C8DB143D1BC934A9311632ACE }}
-        package: ${{ env.JAR }}
+        package: 'build/libs/*.jar'
