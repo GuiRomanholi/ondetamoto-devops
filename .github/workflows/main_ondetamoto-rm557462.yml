@@ -40,5 +40,5 @@ jobs:
       with: 
         app-name: 'ondetamoto-rm557462'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_e727d1e802ce46888ae2a4abd1840b79 }}
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_CD99E9519CD349DEA9D3D2987436B897 }}
         package: ${{ env.JAR }}
