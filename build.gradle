@@ -57,3 +57,7 @@ tasks.named('bootJar') {
 	archiveBaseName.set('api-ondetamoto')
 }
 
+// Desabilita a tarefa 'jar' para evitar o JAR duplicado (-plain.jar)
+tasks.named('jar') {
+    enabled = false
+}
