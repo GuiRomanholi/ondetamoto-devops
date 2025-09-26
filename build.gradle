@@ -49,7 +49,7 @@ tasks.named('test') {
 
 // Configuração do Spring Boot para gerar um JAR executável
 springBoot {
-	mainClass = 'br.com.fiap.ondetamoto.Application'
+	mainClass = 'br.com.fiap.ondetamoto.OndetamotoApplication'
 }
 
 // Opcional: renomear o JAR final
