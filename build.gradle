@@ -48,17 +48,13 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
-tasks.register('fatJar', Jar) {
-	manifest {
-		attributes 'Main-Class': 'br.com.fiap.ondetamoto.Application'
-	}
-	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-	archiveBaseName = 'api-ondetamoto'
-	from {
-		configurations.compileClasspath.collect {
-			it.isDirectory() ? it : zipTree(it)
-		}
-	}
-	with jar
+// Configuração do Spring Boot para gerar um JAR executável
+springBoot {
+	mainClass = 'br.com.fiap.ondetamoto.Application'
+}
+
+// Opcional: renomear o JAR final
+tasks.named('bootJar') {
+	archiveBaseName.set('api-ondetamoto')
 }
 
