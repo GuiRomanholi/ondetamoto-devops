@@ -22,7 +22,7 @@ import java.util.Arrays;
 @RequestMapping("/")
 public class AuthWebController {
 
-    private final String REGISTER_API_URL = "http://ondetamoto-rm557462.azurewebsites.net/api/auth/register";
+    private final String REGISTER_API_URL = "http://ondetamoto-rm557462.azurewebsites.net:8081/api/auth/register";
 
     @GetMapping("/login")
     public String login(@RequestParam(value = "error", required = false) String error, Model model) {
