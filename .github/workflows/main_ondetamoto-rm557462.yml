@@ -1,33 +1,39 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
-
+ 
 name: 'Build and deploy JAR app to Azure Web App: ondetamoto-rm557462'
-
+ 
 on:
   push:
     branches:
     - main
   workflow_dispatch:
-
+ 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v2
-    
     - name: Set up Java version
       uses: actions/setup-java@v1
       with:
         java-version: '17'
-    
-    - name: Build with Maven
-      run: mvn clean install
-
+    - name: Grant execute permission to gradlew
+      run: chmod +x ./gradlew
+    - name: Build with Gradle
+      env:
+        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+        SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+        SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+      run: ./gradlew build --stacktrace
+    - name: Find the latest JAR file
+      id: find-jar
+      run: echo "JAR=$(find $GITHUB_WORKSPACE/build/libs -name '*.jar' -print -quit)" >> $GITHUB_ENV
+ 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with: 
         app-name: 'ondetamoto-rm557462'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_d8f0d47195c74af7bafd531564ffc4c0 }}
-        package: '${{ github.workspace }}/target/*.jar'
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_5B0BB8510E2D4B95800D1A7EA53D1044 }} #lembre-se de bota o novo
+        package: 'build/libs/*.jar'
