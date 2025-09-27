@@ -1,157 +1,393 @@
-# OndeTáMoto? API – FIAP Challenger (Java)
+# Projeto Ondetamoto - Guia de Deploy e Execução na Azure
 
-**OndeTáMoto?** é uma solução IoT desenvolvida para a empresa **Mottu**, especializada em motofrete, com o objetivo de otimizar o controle de entrada, saída e localização de motos dentro da garagem da empresa.
+Este documento detalha o processo completo para provisionar a infraestrutura na Microsoft Azure, realizar o deploy da aplicação Java (Spring Boot) via GitHub Actions e verificar a sua funcionalidade.
 
-## 🔍 Sobre o Projeto
+## 🎯 Sumário
 
-A dinâmica do sistema é simples, porém poderosa: cada moto da frota é equipada com uma tag inteligente, que funciona como um identificador exclusivo. Assim, toda movimentação é registrada instantaneamente, sem necessidade de intervenção manual.
+* [Pré-requisitos](#-pré-requisitos)
+* [Parte 1: Provisionamento da Infraestrutura do Banco de Dados](#-parte-1-provisionamento-da-infraestrutura-do-banco-de-dados)
+* [Parte 2: Deploy da Aplicação com Script Automatizado](#-parte-2-deploy-da-aplicação-com-script-automatizado)
+* [Parte 3: Configuração do Deploy Contínuo com GitHub Actions](#-parte-3-configuração-do-deploy-contínuo-com-github-actions)
+    * [3.1 Configurando os Segredos (Secrets) do Repositório](#31-configurando-os-segredos-secrets-do-repositório)
+    * [3.2 Ajustando o Arquivo de Workflow (.yml)](#32-ajustando-o-arquivo-de-workflow-yml)
+    * [3.3 Obtendo e Configurando o Perfil de Publicação (Publish Profile)](#33-obtendo-e-configurando-o-perfil-de-publicação-publish-profile)
+* [Parte 4: Verificação e Testes](#-parte-4-verificação-e-testes)
+    * [4.1 Verificando as Tabelas no Banco de Dados](#41-verificando-as-tabelas-no-banco-de-dados)
+    * [4.2 Testando a API com Requisições](#42-testando-a-api-com-requisições)
+* [Considerações Finais e Troubleshooting](#-considerações-finais-e-troubleshooting)
 
-Esses dados são enviados para um aplicativo mobile, que centraliza todas as informações em uma interface amigável. A equipe da Mottu pode, com poucos toques na tela, visualizar o status de cada moto, saber onde ela está estacionada, identificar quais estão dentro ou fora da garagem e até categorizá-las conforme sua finalidade ou situação atual.
-## 📱 Funcionalidades
+## ✔️ Pré-requisitos
 
-- Monitoramento em tempo real das motos da garagem
-- Visualização via aplicativo mobile
-- Identificação das motos com tags inteligentes
-- Categorização por status ou função
+Antes de começar, garanta que você tenha:
 
-## 🔗 Rotas Pricipais (Swagger)
+1.  **Conta na Microsoft Azure**: Com uma assinatura ativa.
+2.  **Azure CLI**: Instalado e configurado em sua máquina ou utilize o **Cloud Shell** diretamente no portal Azure.
+3.  **Repositório no GitHub**: Com o código-fonte da aplicação.
+
+---
+
+## 🚀 Parte 1: Provisionamento da Infraestrutura do Banco de Dados
+
+O primeiro passo é criar os recursos do banco de dados (Grupo de Recursos, Servidor SQL e o próprio Banco de Dados) usando um script no Azure Cloud Shell.
+
+1.  Acesse o [Portal Azure](https://portal.azure.com/) e abra o **Cloud Shell** (ícone `>_` no topo). Certifique-se de que o ambiente selecionado seja o **Bash**.
+
+2.  Crie o script de criação da infraestrutura:
+    ```bash
+    touch create-sql-server.sh
+    ```
+
+3.  Dê permissão de execução para o script:
+    ```bash
+    chmod +x create-sql-server.sh
+    ```
+
+4.  Abra o editor `nano` para colar o conteúdo do script:
+    ```bash
+    nano create-sql-server.sh
+    ```
+
+5.  Cole o seguinte código no editor. **Atenção:** É uma boa prática de segurança não expor senhas diretamente no código. Para ambientes de produção, utilize o Azure Key Vault ou outras formas seguras de gerenciamento de segredos.
+
+    ```bash
+    #!/bin/bash
+    
+    # Variáveis de configuração
+    RG="rg-ondetamoto"
+    LOCATION="brazilsouth"
+    SERVER_NAME="sqlserver-rm557462"
+    USERNAME="admsql"
+    # Lembre-se da boa prática de não deixar senhas no código em ambientes de produção.
+    PASSWORD="Fiap@2tdsvms"
+    DBNAME="ondetamotodb"
+    
+    # Cria o grupo de recursos
+    echo "Criando o grupo de recursos: $RG..."
+    az group create --name $RG --location $LOCATION
+    
+    # Cria o servidor SQL
+    echo "Criando o servidor SQL: $SERVER_NAME..."
+    az sql server create -l $LOCATION -g $RG -n $SERVER_NAME -u $USERNAME -p $PASSWORD --enable-public-network true
+    
+    # Cria o banco de dados (que estará vazio, pronto para o Flyway)
+    echo "Criando o banco de dados: $DBNAME..."
+    az sql db create -g $RG -s $SERVER_NAME -n $DBNAME --service-objective Basic --backup-storage-redundancy Local --zone-redundant false
+    
+    # Cria a regra de firewall para permitir acesso de serviços do Azure e outros IPs
+    echo "Configurando a regra de firewall..."
+    az sql server firewall-rule create -g $RG -s $SERVER_NAME -n AllowAll --start-ip-address 0.0.0.0 --end-ip-address 255.255.255.255
+    
+    echo "Infraestrutura do banco de dados criada com sucesso!"
+    echo "O banco '$DBNAME' está pronto e vazio para o Flyway gerenciar o schema."
+    ```
+    Salve e feche o editor (`CTRL + X`, depois `Y` e `Enter`).
+
+6.  Execute o script para criar os recursos:
+    ```bash
+    ./create-sql-server.sh
+    ```
+
+---
+
+## ⚙️ Parte 2: Deploy da Aplicação com Script Automatizado
+
+Este script irá criar o App Service, o Application Insights e configurar as variáveis de ambiente necessárias para a aplicação se conectar ao banco de dados.
+
+1.  Ainda no Cloud Shell, crie o script de deploy:
+    ```bash
+    touch deploy-ondetamoto.sh
+    ```
+
+2.  Dê permissão de execução:
+    ```bash
+    chmod +x deploy-ondetamoto.sh
+    ```
+
+3.  Abra o editor `nano`:
+    ```bash
+    nano deploy-ondetamoto.sh
+    ```
+
+4.  Cole o script abaixo, **lembrando de alterar** o valor da variável `GITHUB_REPO_NAME` para o seu usuário e repositório.
+
+    ```bash
+    #!/bin/bash
+    
+    # --- Variáveis de Configuração da Aplicação ---
+    # Altere 'rm557462' e seu repositório GitHub
+    export RESOURCE_GROUP_NAME="rg-ondetamoto"
+    export WEBAPP_NAME="ondetamoto-rm557462"
+    export APP_SERVICE_PLAN="planOndetamoto"
+    export LOCATION="brazilsouth"
+    export RUNTIME="JAVA:17-java17"
+    export GITHUB_REPO_NAME="GuiRomanholi/ondetamoto-devops"
+    export BRANCH="main"
+    export APP_INSIGHTS_NAME="ai-ondetamoto"
+    
+    # --- Variáveis do Banco de Dados ---
+    export DB_SERVER_NAME="sqlserver-rm557462"
+    export DB_NAME="ondetamotodb"
+    export DB_USER="admsql"
+    export DB_PASSWORD="Fiap@2tdsvms" # ATENÇÃO: Altere esta senha para uma segura!
+    
+    # Construção da URL JDBC dinamicamente
+    export JDBC_URL="jdbc:sqlserver://${DB_SERVER_NAME}.database.windows.net:1433;database=${DB_NAME};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;"
+    
+    echo "Iniciando o deploy da aplicação e infraestrutura..."
+    
+    # Criar Application Insights
+    az monitor app-insights component create \
+    --app "$APP_INSIGHTS_NAME" \
+    --location "$LOCATION" \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --application-type web
+    
+    # Criar o Plano de Serviço
+    az appservice plan create \
+    --name "$APP_SERVICE_PLAN" \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --location "$LOCATION" \
+    --sku F1 \
+    --is-linux
+    
+    # Criar o Serviço de Aplicativo (Web App)
+    az webapp create \
+    --name "$WEBAPP_NAME" \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --plan "$APP_SERVICE_PLAN" \
+    --runtime "$RUNTIME"
+    
+    # Habilita a autenticação Básica (SCM) para deploy
+    az resource update \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --namespace Microsoft.Web \
+    --resource-type basicPublishingCredentialsPolicies \
+    --name scm \
+    --parent sites/"$WEBAPP_NAME" \
+    --set properties.allow=true
+    
+    # Recuperar a String de Conexão do Application Insights
+    CONNECTION_STRING=$(az monitor app-insights component show \
+    --app "$APP_INSIGHTS_NAME" \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --query connectionString \
+    --output tsv)
+    
+    # Configurar as Variáveis de Ambiente da Aplicação
+    az webapp config appsettings set \
+    --name "$WEBAPP_NAME" \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --settings \
+    APPLICATIONINSIGHTS_CONNECTION_STRING="$CONNECTION_STRING" \
+    ApplicationInsightsAgent_EXTENSION_VERSION="~3" \
+    XDT_MicrosoftApplicationInsights_Mode="Recommended" \
+    XDT_MicrosoftApplicationInsights_PreemptSdk="1" \
+    SPRING_DATASOURCE_USERNAME="$DB_USER" \
+    SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD" \
+    SPRING_DATASOURCE_URL="$JDBC_URL"
+    
+    # Reiniciar o Web App para aplicar as configurações
+    az webapp restart \
+    --name "$WEBAPP_NAME" \
+    --resource-group "$RESOURCE_GROUP_NAME"
+    
+    # Conectar Web App ao Application Insights
+    az monitor app-insights component connect-webapp \
+    --app "$APP_INSIGHTS_NAME" \
+    --web-app "$WEBAPP_NAME" \
+    --resource-group "$RESOURCE_GROUP_NAME"
+    
+    # Configurar GitHub Actions para Build e Deploy automático
+    az webapp deployment github-actions add \
+    --name "$WEBAPP_NAME" \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --repo "$GITHUB_REPO_NAME" \
+    --branch "$BRANCH" \
+    --login-with-github
+    
+    echo "Deploy concluído com sucesso!"
+    ```
+    Salve e feche o editor.
+
+5.  Execute o script:
+    ```bash
+    ./deploy-ondetamoto.sh
+    ```
+    Este comando irá configurar o GitHub Actions, mas o arquivo de workflow gerado pode precisar de ajustes.
+
+---
+
+## 🔧 Parte 3: Configuração do Deploy Contínuo com GitHub Actions
+
+O script anterior cria a base, mas agora precisamos garantir que o GitHub consiga autenticar na Azure e que o processo de build e deploy da aplicação Java funcione corretamente.
+
+### 3.1 Configurando os Segredos (Secrets) do Repositório
+
+As credenciais do banco de dados não devem ficar no código. Vamos configurá-las como "Secrets" no GitHub.
+
+1.  No seu repositório GitHub, vá em **Settings** > **Secrets and variables** > **Actions**.
+2.  Clique em **New repository secret** e adicione os seguintes segredos:
+
+    * **Nome**: `SPRING_DATASOURCE_USERNAME`
+        * **Valor**: `admsql`
+
+    * **Nome**: `SPRING_DATASOURCE_PASSWORD`
+        * **Valor**: `Fiap@2tdsvms`
+
+    * **Nome**: `SPRING_DATASOURCE_URL`
+        * **Como obter o valor**: Vá para o Portal Azure > `rg-ondetamoto` > `ondetamotodb (sqlserver-rm557462/ondetamotodb)` > `Configurações` > `Cadeias de conexão` > copie o valor do campo **JDBC**.
+        > jdbc:sqlserver://sqlserver-rm557462.database.windows.net:1433;database=ondetamotodb;user=admsql@sqlserver-rm557462;password={your_password_here};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+
+### 3.2 Ajustando o Arquivo de Workflow (.yml)
+
+O script `deploy-ondetamoto.sh` cria um arquivo de workflow `.yml` no seu repositório, dentro da pasta `.github/workflows/`. Este arquivo provavelmente precisará ser substituído.
+
+1.  No seu repositório, localize e abra o arquivo `.yml` recém-criado.
+2.  Substitua **todo o conteúdo** dele pelo código abaixo. Este código está ajustado para um build com Gradle e Java 17.
+
+    ```yaml
+    # Docs for the Azure Web Apps Deploy action: [https://github.com/Azure/webapps-deploy](https://github.com/Azure/webapps-deploy)
+    # More GitHub Actions for Azure: [https://github.com/Azure/actions](https://github.com/Azure/actions)
+    
+    name: 'Build and deploy JAR app to Azure Web App: ondetamoto-rm557462'
+    
+    on:
+      push:
+        branches:
+          - main
+      workflow_dispatch:
+    
+    jobs:
+      build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v2
+        
+        - name: Set up Java version
+          uses: actions/setup-java@v1
+          with:
+            java-version: '17'
+            
+        - name: Grant execute permission to gradlew
+          run: chmod +x ./gradlew
+          
+        - name: Build with Gradle
+          env:
+            SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+            SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+            SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          run: ./gradlew build --stacktrace
+          
+        - name: Deploy to Azure Web App
+          uses: azure/webapps-deploy@v2
+          with: 
+            app-name: 'ondetamoto-rm557462'
+            slot-name: 'production'
+            publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_5B0BB8510E2D4B95800D1A7EA53D1044 }} # LEMBRE-SE DE VERIFICAR O NOME DO SECRET!
+            package: 'build/libs/*.jar'
+    ```
+
+### 3.3 Obtendo e Configurando o Perfil de Publicação (Publish Profile)
+
+O workflow precisa de um segredo especial (`AZUREAPPSERVICE_PUBLISHPROFILE_...`) para se autenticar na Azure. O script de deploy já deve ter criado este segredo, mas caso precise ser atualizado ou criado manualmente:
+
+1.  No Portal Azure, navegue até o seu App Service (`ondetamoto-rm557462` dentro do grupo `rg-ondetamoto`).
+2.  Clique em **Baixar o perfil de publicação**. Um arquivo `.PublishSettings` será baixado.
+3.  Abra este arquivo com um editor de texto (como o VS Code).
+4.  Copie **todo o conteúdo** do arquivo.
+5.  Volte para os segredos do seu repositório no GitHub (**Settings** > **Secrets and variables** > **Actions**).
+6.  Encontre o segredo chamado `AZUREAPPSERVICE_PUBLISHPROFILE_...` e clique em **Update**. Cole o conteúdo que você copiou no campo de valor. Se ele não existir, crie-o com este nome.
+
+Após salvar o novo arquivo `.yml` e confirmar os segredos, um `push` para a branch `main` irá disparar a Action, que fará o build do projeto e o deploy na Azure.
+
+---
+
+## 🔬 Parte 4: Verificação e Testes
+
+### 4.1 Verificando as Tabelas no Banco de Dados
+
+Após a conclusão do deploy pelo GitHub Actions, o Flyway deverá ter executado as migrations e criado as tabelas.
+
+1.  No Portal Azure, vá para o seu banco de dados `ondetamotodb`.
+2.  No menu lateral, selecione **Editor de Consultas (visualização)**.
+3.  Faça o login com a **Autenticação do SQL Server**:
+    * **Login**: `admsql`
+    * **Senha**: `Fiap@2tdsvms`
+4.  Execute as seguintes consultas para verificar se as tabelas foram criadas e se contêm dados:
+
+    ```sql
+    select * from estabelecimento;
+    select * from setores;
+    select * from moto;
+    select * from usuario;
+    ```
+
+### 4.2 Testando a API com Requisições
+
+## 🔗 Rotas Pricipais pra Teste (Swagger)
 
 A API do projeto pode ser acessada via Swagger na rota:
 
-[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui/index.html)
+[http://ondetamoto-rm557462.azurewebsites.net/swagger-ui/index.html](http://ondetamoto-rm557462.azurewebsites.net/swagger-ui/index.html)
 
-## ⚠️ Atenção Importante
+Para testar os endpoints, você precisará da URL do seu App Service (ex: `https://ondetamoto-rm557462.azurewebsites.net`). Você pode encontrá-la na página de visão geral do seu App Service no portal Azure.
 
-Devido ao relacionamento entre **Estabelecimentos** e **Usuários**, **é necessário criar um Estabelecimento antes de cadastrar um Usuário**. O usuário precisa estar vinculado a um estabelecimento já existente no sistema.
+> **Importante:**
+> Crie um **Estabelecimento** antes de criar um **Setor** e crie um **Setor** antes de adicionar uma **Moto**. O ID gerado em um passo é usado no próximo.
 
-## 🔗 Rotas principais:
+#### Exemplo 1: `POST` (Registrar Usuário)
 
-### 🏍️ Motos
-- `GET /motos` – Lista todas as motos  
-- `POST /motos` – Cadastra uma nova moto  
-- `GET /motos/{id}` – Detalhes de uma moto  
-- `DELETE /motos/{id}` – Remove uma moto
-- `PUT /motos/{id}` – Alterar uma moto  
+```bash
+{
+    "email": "henriquechaco@gmail.com",
+    "senha": "SenhaForte123",
+    "role": "ADMIN"
+}
+```
 
----
+#### Exemplo 2: `POST` (Criar Estabelecimento)
 
-### 👤 Usuários
-- `GET /usuarios` – Lista de usuários  
-- `POST /usuarios` – Cadastro de usuário  
-- `GET /usuarios/{id}` – Detalhes de um usuário  
-- `DELETE /usuarios/{id}` – Remove um usuário
-- `PUT /usuarios/{id}` – Alterar um usuário 
+```bash
+{
+    "endereco": "Avenida Lins de Vasconcelos 362"
+}
+```
 
----
+#### Exemplo 3: `POST` (Criar Setor)
 
-### 🏢 Estabelecimentos
-- `GET /estabelecimentos` – Lista estabelecimentos  
-- `POST /estabelecimentos` – Cadastro de estabelecimento  
-- `GET /estabelecimentos/{id}` – Detalhes de um estabelecimento  
-- `DELETE /estabelecimentos/{id}` – Remove um estabelecimento
-- `PUT /estabelecimentos/{id}` – Alterar um estabelecimento 
-
-## Rotas recomendadas para o Teste:
-
-- `POST /estabelecimentos` – Cadastro de estabelecimento
-  ```bash
-   {
-     "endereco": "Rua Hermando Colch, 193"
-   }
-- `GET /estabelecimentos` – Lista estabelecimentos
-- `GET /estabelecimentos/{id}` – Detalhes de um estabelecimento
-- `DELETE /estabelecimentos/{id}` – Remove um estabelecimento
-- `PUT /estabelecimentos/{id}` – Alterar um estabelecimento
-  ```bash
-  {
-    "endereco": "Rua Santo Agustinho Vieras, 225"
-  }
----
-- `POST /usuarios` – Cadastro de usuário
-  ```bash
-  {
-    "email": "luizneri18@gmail.com",
-    "senha": "Luizjava01",
+```bash
+{
+    "nome": "Ala de Reparos Rápidos",
+    "tipo": "MANUTENCAO",
+    "tamanho": "Grande",
     "idEstabelecimento": 1
-  }
-- `GET /usuarios` – Lista de usuários
-- `GET /usuarios/{id}` – Detalhes de um usuário
-- `DELETE /usuarios/{id}` – Remove um usuário
-- `PUT /usuarios/{id}` – Alterar um usuário
-  ```bash
-  {
-    "email": "guilhermeroma123@gmail.com",
-    "senha": "Guizin01",
-    "idEstabelecimento": 1
-  }
+}
+```
 
-## 🛠️ Tecnologias Utilizadas
+#### Exemplo 4: `POST` (Adicionar Moto)
 
-- ☕ Java 17
-- 🌱 Spring Boot
-- 🟦 Spring Data JPA
-- 🟩 Bean Validation
-- 📦 Spring Cache
-- 📄 Swagger/OpenAPI
-- 🛢️ Banco de Dados H2 
-- 🐳 Docker (containerização da API)
 
-## 🚀 Como Executar
+```bash
+{
+    "marca": "Honda",
+    "placa": "XYZ1234",
+    "tag": "MT-01",
+    "idSetores": 1
+}
+```
 
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/GuiRomanholi/ondetamoto.git
-   cd ondetamoto
+---
+
+## 💡 Considerações Finais e Troubleshooting
+
+* **Flyway**: Verifique se os seus scripts de migração do Flyway (`V1__create_table.sql`, etc.) estão corretos na pasta `src/main/resources/db/migration` do seu projeto. Erros aqui são uma causa comum de falha na inicialização da aplicação.
+* **Dependências**: Confirme se o seu arquivo `build.gradle` ou `pom.xml` contém todas as dependências necessárias (Spring Web, Spring Data JPA, SQL Server Driver, Flyway, etc.).
+* **Logs**: Se a aplicação falhar ao iniciar, verifique os logs. Vá para o App Service no Portal Azure > **Ferramentas de Desenvolvimento** > **Fluxo de Log** para ver os logs em tempo real.
+
+---
 
 ## 🧑‍💻 Integrantes do Grupo
 
 - **Guilherme Romanholi Santos - RM557462**
 - **Murilo Capristo - RM556794**
 - **Nicolas Guinante Cavalcanti - RM557844**
-
----
-
-# 🐳 Parte 2: DevOps — Containerização da API
-
-## 🎥 Link do Vídeo
-[Link do Video](https://www.youtube.com/watch?v=GOuvrEtKBo4)
-
-**OndeTáMoto?** é uma solução IoT desenvolvida para a empresa **Mottu**, especializada em motofrete, com o objetivo de otimizar o controle de entrada, saída e localização de motos dentro da garagem da empresa.
-
-## 🔍 Sobre o Projeto
-
-A dinâmica do sistema é simples, porém poderosa: cada moto da frota é equipada com uma tag inteligente, que funciona como um identificador exclusivo. Assim, toda movimentação é registrada instantaneamente, sem necessidade de intervenção manual.
-
-Esses dados são enviados para um aplicativo mobile, que centraliza todas as informações em uma interface amigável. A equipe da Mottu pode, com poucos toques na tela, visualizar o status de cada moto, saber onde ela está estacionada, identificar quais estão dentro ou fora da garagem e até categorizá-las conforme sua finalidade ou situação atual.
-## 📱 Funcionalidades
-
-- Monitoramento em tempo real das motos da garagem
-- Visualização via aplicativo mobile
-- Identificação das motos com tags inteligentes
-- Categorização por status ou função
-
-### Build e execução
-
-1. **Gere o JAR:**
-    ```sh
-    gradlew build
-    ```
-
-2. **Construa a imagem Docker:**
-    ```sh
-    docker build -t ondetamoto-app .
-    ```
-
-3. **Rode o container:**
-    ```sh
-    docker run -d -p 8080:8080 --name ondetamoto-app ondetamoto-app
-    ```
-
-4. **Acesse a aplicação:**
-    - [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-    - [http://localhost:8080/h2-console](http://localhost:8080/h2-console)
-      - JDBC URL: jdbc:h2:mem:testdb
-      - User Name: sa
-      - Password: deixar em branco
-
----
