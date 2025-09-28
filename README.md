@@ -24,6 +24,9 @@ Antes de começar, garanta que você tenha:
 2.  **Azure CLI**: Instalado e configurado em sua máquina ou utilize o **Cloud Shell** diretamente no portal Azure.
 3.  **Repositório no GitHub**: Com o código-fonte da aplicação.
 
+## 🎥 Link do Vídeo
+[Link do Video de Devops](https://www.youtube.com/watch?v=MEZ-fd3zk-c)
+
 ---
 
 ## 🚀 Parte 1: Provisionamento da Infraestrutura do Banco de Dados
