@@ -83,7 +83,7 @@ O primeiro passo é criar os recursos do banco de dados (Grupo de Recursos, Serv
     echo "Infraestrutura do banco de dados criada com sucesso!"
     echo "O banco '$DBNAME' está pronto e vazio para o Flyway gerenciar o schema."
     ```
-    Salve e feche o editor (`CTRL + X`, depois `Y` e `Enter`).
+    Salve e feche o editor (`CTRL + S`, depois `CTRL + X` e `Enter`).
 
 6.  Execute o script para criar os recursos:
     ```bash
