@@ -342,7 +342,7 @@ Após a conclusão do deploy pelo GitHub Actions, o Flyway deverá ter executado
 
 ## 🔗 Rotas Pricipais pra Teste (Swagger)
 
-A API do projeto pode ser acessada via Swagger na rota:
+A API do projeto podia ser acessada via Swagger na rota:
 
 [http://ondetamoto-rm557462.azurewebsites.net/swagger-ui/index.html](http://ondetamoto-rm557462.azurewebsites.net/swagger-ui/index.html)
 
