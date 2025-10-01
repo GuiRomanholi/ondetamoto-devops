@@ -2,6 +2,10 @@
 
 Este documento detalha o processo completo para provisionar a infraestrutura na Microsoft Azure, realizar o deploy da aplicação Java (Spring Boot) via GitHub Actions e verificar a sua funcionalidade.
 
+# DDL da Tabelas
+
+As tabelas são criadas automaticamente pelo Flyway inserido no projeto, caso queira averiguar entre no projeto vá em src > main > resources > db > migration e estarão lá.
+
 ## 📝 Descrição da Solução
 
 O projeto **OndeTáMoto?** é uma solução tecnológica baseada em IoT (Internet das Coisas) desenvolvida para a Mottu, uma empresa de motofrete, com o objetivo de gerenciar e controlar motos em tempo real dentro de sua garagem. O sistema utiliza tags inteligentes em cada moto para registrar automaticamente seus movimentos (entrada, saída e permanência). Esses dados são centralizados em um aplicativo mobile com uma interface amigável, permitindo à equipe visualizar o status, localização, e categorização de cada moto.
