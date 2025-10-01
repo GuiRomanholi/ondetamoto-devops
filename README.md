@@ -2,7 +2,7 @@
 
 Este documento detalha o processo completo para provisionar a infraestrutura na Microsoft Azure, realizar o deploy da aplicação Java (Spring Boot) via GitHub Actions e verificar a sua funcionalidade.
 
-# DDL da Tabelas
+## DDL da Tabelas
 
 As tabelas são criadas automaticamente pelo Flyway inserido no projeto, caso queira averiguar entre no projeto vá em src > main > resources > db > migration e estarão lá.
 
